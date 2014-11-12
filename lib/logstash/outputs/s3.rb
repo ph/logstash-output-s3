@@ -306,16 +306,11 @@ class LogStash::Outputs::S3 < LogStash::Outputs::Base
     @periodic_upload_thread = Thread.new do
       LogStash::Util::set_thread_name("<S3 periodic uploader")
 
-      first_interval = true
-      Stud.interval(@time_file * 60) do
-        if first_interval == false
-          @logger.debug("S3: time_file triggered, bucketing the file")
+      Stud.interval(@time_file * 60, :sleep_then_run => true) do
+        @logger.debug("S3: time_file triggered, bucketing the file")
 
-          move_file_to_bucket_async(@tempfile.path)
-          create_temporary_file
-        else
-          first_interval = false
-        end
+        move_file_to_bucket_async(@tempfile.path)
+        create_temporary_file
       end
     end
   end
