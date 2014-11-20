@@ -112,10 +112,10 @@ class LogStash::Outputs::S3 < LogStash::Outputs::Base
   # Specify how many workers to use to upload the files to S3
   config :upload_workers_count, :validate => :number, :default => 1
 
-
   # Exposed attributes for testing purpose.
   attr_accessor :tempfile
   attr_reader :page_counter
+  attr_reader :s3
 
   def aws_s3_config
     @logger.info("Registering s3 output", :bucket => @bucket, :endpoint_region => @region)
