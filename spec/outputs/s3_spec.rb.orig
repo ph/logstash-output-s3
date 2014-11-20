@@ -1,6 +1,15 @@
+<<<<<<< HEAD
+require "spec_helper"
+require "logstash/outputs/s3"
+require 'socket'
+require "aws-sdk"
+require "fileutils"
+require "stud/temporary"
+=======
 # encoding: utf-8
 require "logstash/devutils/rspec/spec_helper"
 require 'logstash/outputs/s3'
+>>>>>>> master
 
 describe LogStash::Outputs::S3 do
   before do
