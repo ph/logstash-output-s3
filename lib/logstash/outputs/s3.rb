@@ -233,7 +233,6 @@ class LogStash::Outputs::S3 < LogStash::Outputs::Base
       when LogStash::ShutdownEvent
         @logger.debug("S3: upload worker is shutting down gracefuly")
         @upload_queue.enq(LogStash::ShutdownEvent)
-        break
       else
         @logger.debug("S3: upload working is uploading a new file", :filename => File.basename(file))
         move_file_to_bucket(file)
@@ -263,8 +262,26 @@ class LogStash::Outputs::S3 < LogStash::Outputs::Base
 
     begin
       write_on_bucket(test_filename)
+      delete_on_bucket(test_filename)
     ensure
       File.delete(test_filename)
+    end
+  end
+  
+  def delete_on_bucket(filename)
+    bucket = @s3.buckets[@bucket]
+
+    remote_filename = "#{@prefix}#{File.basename(filename)}"
+
+    @logger.debug("S3: delete file from bucket", :remote_filename => remote_filename, :bucket => @bucket)
+
+    begin
+      # prepare for write the file
+      object = bucket.objects[remote_filename]
+      object.delete
+    rescue AWS::Errors::Base => e
+      @logger.error("S3: AWS error", :error => e)
+      raise LogStash::ConfigurationError, "AWS Configuration Error"
     end
   end
 
