@@ -3,6 +3,7 @@ require "logstash/outputs/base"
 require "logstash/namespace"
 require "logstash/plugin_mixins/aws_config"
 require "stud/temporary"
+require "stud/task"
 require "socket" # for Socket.gethostname
 require "thread"
 require "tmpdir"
@@ -311,6 +312,7 @@ class LogStash::Outputs::S3 < LogStash::Outputs::Base
   public
   def close
     shutdown_upload_workers
+
     @periodic_rotation_thread.stop! if @periodic_rotation_thread
 
     @file_rotation_lock.synchronize do

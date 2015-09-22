@@ -50,7 +50,7 @@ describe LogStash::Outputs::S3 do
       s3.register
 
       expect(Dir.exist?(temporary_directory)).to eq(true)
-      s3.teardown
+      s3.close
       FileUtils.rm_r(temporary_directory)
     end
 
@@ -194,7 +194,7 @@ describe LogStash::Outputs::S3 do
       end
 
       after(:each) do
-        s3.teardown
+        s3.close
         tmp.close 
         tmp.unlink
       end
@@ -264,7 +264,7 @@ describe LogStash::Outputs::S3 do
     end
   end
 
-  describe "when rotating the temporary file" do
+  describe "when rotating the temporary file", :slow => true do
     before { allow(File).to receive(:delete) }
 
     it "doesn't skip events if using the size_file option" do
@@ -272,36 +272,27 @@ describe LogStash::Outputs::S3 do
         size_file = rand(200..20000)
         event_count = rand(300..15000)
 
-        config = %Q[
-        input {
-          generator {
-            count => #{event_count}
-          }
+        config = {
+          "size_file" => size_file,
+          "temporary_directory" => temporary_directory,
+          "bucket" => "testing"
         }
-        output {
-          s3 {
-            access_key_id => "1234"
-            secret_access_key => "secret"
-            size_file => #{size_file}
-            codec => line
-            temporary_directory => '#{temporary_directory}'
-            bucket => 'testing'
-          }
-        }
-        ]
 
-        pipeline = LogStash::Pipeline.new(config)
+        s3 = LogStash::Outputs::S3.new(minimal_settings.merge(config))
 
-        pipeline_thread = Thread.new { pipeline.run }
-        sleep 0.1 while !pipeline.ready?
-        pipeline_thread.join
+        s3.register
+        event_count.times do
+          event = LogStash::Event.new("message" => "hello world")
+          s3.receive(event)
+        end
+        s3.close
 
         events_written_count = events_in_files(Dir[File.join(temporary_directory, 'ls.*.txt')])
         expect(events_written_count).to eq(event_count)
       end
     end
 
-    it "doesn't skip events if using the time_file option", :tag => :slow do
+    it "doesn't skip events if using the time_file option" do
       Stud::Temporary.directory do |temporary_directory|
         time_file = rand(5..10)
         number_of_rotation = rand(4..10)
@@ -328,7 +319,7 @@ describe LogStash::Outputs::S3 do
           s3.receive(event)
           event_count += 1
         end
-        s3.teardown
+        s3.close
 
         generated_files = Dir[File.join(temporary_directory, 'ls.*.txt')]
 
